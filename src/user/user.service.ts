@@ -4,6 +4,8 @@ import { User } from "./model/user.model";
 import { InjectModel } from "@nestjs/sequelize";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { AppError } from "../common/errors";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { WatchListModel } from "../watch-list/model/watchList.model";
 
 @Injectable()
 export class UserService {
@@ -22,13 +24,19 @@ export class UserService {
     return this.userRepository.findOne({ where: { email } });
   }
 
+  async getProfileUser(email: string) {
+    return this.userRepository.findOne({
+      where: { email }, attributes: {
+        exclude: ["password"],
+      },
+      include: {
+        model: WatchListModel,
+        required: false
+      }
+    });
+  }
+
   async createUser(dto: CreateUserDto): Promise<CreateUserDto> {
-
-    const existUser = await this.findUserByEmail(dto.email);
-
-    if (existUser) {
-      throw new BadRequestException(AppError.USER_EXIST);
-    }
 
     dto.password = await this.hashPassword(dto.password);
 
@@ -42,6 +50,27 @@ export class UserService {
     await this.userRepository.create(newUser);
 
     return dto;
+  }
+
+  async updateUser(dto: UpdateUserDto, user: User) {
+
+    const existUser = await this.findUserByEmail(user.email);
+
+    if (!existUser) {
+      throw new BadRequestException(AppError.USER_NOT_EXIST);
+    }
+
+    return this.userRepository.update(dto, { where: { email: user.email } });
+  }
+
+  async deleteUser(user: User) {
+    const existUser = await this.findUserByEmail(user.email);
+
+    if (!existUser) {
+      throw new BadRequestException(AppError.USER_NOT_EXIST);
+    }
+
+    return this.userRepository.destroy({where: { email: existUser.email }})
   }
 
 }

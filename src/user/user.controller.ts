@@ -1,7 +1,8 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Patch, Req, UseGuards } from "@nestjs/common";
 import { UserService } from "./user.service";
-import { ApiBody, ApiResponse, ApiTags } from "@nestjs/swagger";
-import { CreateUserDto } from "./dto/create-user.dto";
+import { ApiBearerAuth, ApiBody, ApiHeader, ApiTags } from "@nestjs/swagger";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 
 @ApiTags("users")
 @Controller("users")
@@ -9,14 +10,39 @@ export class UserController {
   constructor(private readonly userService: UserService) {
   }
 
-  @Post('create-user')
+  // @Post('create-user')
+  // @ApiBody({
+  //   type: CreateUserDto
+  // })
+  // @ApiResponse({
+  //   type: CreateUserDto
+  // })
+  // createUsers (@Body() dto: CreateUserDto) {
+  //   return this.userService.createUser(dto)
+  // }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("update-user")
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "Authorization",
+    description: "Bearer <token>"
+  })
   @ApiBody({
-    type: CreateUserDto
+    type: UpdateUserDto
   })
-  @ApiResponse({
-    type: CreateUserDto
+  updateUser(@Body() dto: UpdateUserDto, @Req() request) {
+    return this.userService.updateUser(dto, request.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete("delete-user")
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "Authorization",
+    description: "Bearer <token>"
   })
-  createUsers (@Body() dto: CreateUserDto) {
-    return this.userService.createUser(dto)
+  deleteUser(@Req() request) {
+    return this.userService.deleteUser(request.user);
   }
 }
